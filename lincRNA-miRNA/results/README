@@ -1,0 +1,109 @@
+"miRNA_m8_hitsin_lncRNAs_New051414.txt"
+
+This file contains the genomic coordinates for all of the hits (correct ones) for every miRNA family in the lincRNA transcriptome.  It is in BED format.  This is the output of the Target2Pretty_Final.py program.  This file has the seed sequence plus a perfect m8 match.
+
+"miRNA_SeedM_hitsin_lncRNAs_New051414.txt"
+
+This is similar to the file immediately above. It has only the seed sequences though.
+
+"miRNA_t1A_hitsin_lncRNAs_New051414.txt"
+
+This has the seed sequence plus an "A" at the t1 position
+
+"miRNA_t1A_m8_hitsin_lncRNAs_New051414.txt"
+
+This has the seed sequence, a perfect m8 match, and an "A" at the t1 position (i.e. SeedM + m8 + t1A)
+	
+"miRNAFamily_FrequencyofhitsinlncRNAs.txt"
+
+This file contains the frequency of hits of each miRNA family in lncRNAs for all of the  variations of the seed sequence mentioned above.  It is a tab-delimited file.  The first column corresponds to miRNA families.
+
+The second corresponds to the number of SeedM matches in lincRNAs, the third to SeedM + m8, the fourth to SeedM + t1A, and the fifth to SeedM + t1A + m8.
+	
+"miRNA_InverseComplements_SeedM.txt"
+
+This file contains the miRNA families and the inverse complements of their seed sequence. This is the second input file for the Target2Pretty_Final.py program.
+
+"miRNA_InverseComplements_m8.txt"
+
+Similar to above file but also contains the eight nucleotide of the miRNA sequence (m8)
+
+"miRNA_InverseComplements_t1A.txt"
+
+As above except with an "A" at the t1 position
+
+"miRNA_InverseComplements_t1A_m8.txt"
+
+As above except these sequences have the seed + t1A + m8
+
+This file contains information for finding miRNA seed matches in lincRNAs.
+Specifically, the following steps describe the protocol used to find the genomic
+coordinates of miRNA:lincRNA seed matches.  This information is then used to obtain
+the conservation scores of each match.
+
+Step 1:  Convert lincRNA transcriptome to a parsed fasta file
+i) Using a lincRNA transcriptome in fasta format, execute the following awk code:
+
+awk 'NR>1&&/^>/{printf "\n"}{printf "%s",$0}/^>/{printf " "}' transcriptome.fasta 
+>parsedtranscriptome.fasta
+
+ii) Open the output.fasta file in Excel.  Convert the spaces to tabs using the "text to columns" feature.  Once this is done, remove the strand information (i.e. +/-) from the chromosome column.
+	
+Step 2:  Convert miRNA seeds to inverse complements
+
+i)  Use the miRNA_ReverseComplement.py program and a two-column, headerless, tab-delimited file that contains the miRNA family identifier in column 1 and the miRNA sequence in column 2 to generate a two-columned (tab-delimited) file.
+
+ii) Execute the following code:
+
+python miRNA_ReverseComplement.py miRNA_familiesandsequences >miRNA_InverseComps.txt
+	
+The resulting output file has two tab-delimited columns.  The first column has the miRNA identifier and the second column has the inverse complement (DNA!) sequence of the miRNA_ReverseComplement
+	
+iii) If interested in other variations of the miRNA sequence (following example is for adding an A at the t1 position) then modify it appropriately.  For example, if it is desired that an adenosine be at the t1 position as described in Lewis et al (Cell, 2005), then simply open the output miRNA file from step ii and add an A at the end of each sequence.  This can easily be accomplished in Excel or with a short Python script. Alternatively, one can generate the desired miRNA sequence first (i.e. add "U" to the beginning of each miRNA)and then convert the sequence to the inverse complement as in step 2. *The conventions used in this project follow that of Lewis et al (Cell, 2005)
+
+Step 3:  Find the genomic coordinates of nonoverlapping miRNA seed matches in the lincRNA transcriptome
+
+i) Run the Target2Pretty_Final.py program on the modified transcriptome from step 1 and the miRNA inverse complements generated from step 2 as shown below: python Target2Pretty_Final.py parsedtranscriptome.fasta miRNA_InverseComps.txt 
+
+>miRNA_hitsin_lincRNAs.bed (or .txt, etc)
+	
+Code Breakdown:
+
+The purpose of the first two loops is to open the miRNA file, strip the first line of white space, and split the line according to the tabs.  It then sets a variable that is equal to either the miRNA family in the row or the miRNA inverse complement sequence. 
+
+Lines 24-28
+		
+The next two loops opens the transcriptome file and splits each line according to tabs.  It sets variables equal to each part of the 
+line.  It also uses re.compile so that a given miRNA seed match can be efficiently searched for multiple times.
+
+Lines 29-35
+		
+The purpose of the next loop is to find non-overlapping instances of a seed sequence in a given lincRNA.  This code stores the starting and ending index of the seed match.
+		
+Lines 36-41
+		
+The following loop is designed to consider each lincRNA exon's genomic location after a seed is matched to a given lincRNA. This is useful because the next steps involve calculations to determine which exon a given miRNA seed match belongs to.
+		
+Lines 42-45
+		
+The next two "If" loops determine whether or not a seed match falls 100% within the genomic range of a given lincRNA exon.  If it does, then it returns the location of that match and terminates the loop such that the location of the next seed match can be found.  If the seed match falls outside of the range of the lincRNA, then the program adjusts the starting and ending index of the seed match to account for the fact that the next exon begins at a different location in the nucleotide sequence of the lincRNA.
+		
+Lines 46-61
+
+Step 4:  This step refers to finding the total number of hits of all miRNAs and each family's hits in lincRNAs
+i) To find the total number of hits for all miRNAs, simply count the number of lines (minus 1!) in the output file from step 3
+ii) For each family's total hits, one would need to count the number of occurrences of a given miRNA family in column 4 of the output file from step 3.  One such way to do this is to copy column 4 to a new file, which we will call "miRNAFamily_FrequencyinLincs.txt".  Then, one would execute the following script in Linux:
+	
+cut -f4 miRNAFamily_FrequencyinLincs.txt |sort|uniq -c| sort -rn | head -n70 >miRNAFamily_HitFrequency.txt
+
+Note:  The number of lines to head in the last part of the above command will vary depending on how many miRNA families you have.	
+
+References:
+
+Crooks GE, Hon G, Chandonia JM, Brenner SE WebLogo: A sequence logo generator, Genome Research, 14:1188-1190, (2004)
+
+Lewis B.P., Burge C., Bartel D. "Conserved seed pairing, often flanked by adenosines, indicates that thousands of human genes are microRNA targets." Cell (2005) 120(1):15-20.
+
+Sievers F, Wilm A, Dineen DG, Gibson TJ, Karplus K, Li W, Lopez R, McWilliam H, Remmert M, Söding J, Thompson JD, Higgins DG (2011). 
+
+Fast, scalable generation of high-quality protein multiple sequence alignments using Clustal Omega. Molecular Systems Biology 7:539 doi:10.1038/msb.2011.75
