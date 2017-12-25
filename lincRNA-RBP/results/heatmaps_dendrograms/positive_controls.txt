@@ -1,0 +1,11 @@
+From the heatmap - “Clustering-NoLast2FinalTable-hierarchical_euclidean_cityblock.pdf” we see that small RNA’s interact strongly with M317, M319, M136. Similarly 3’ UTR’s interact strongly with M349, M269 and M328. CDS on the other hand interact with M071 quite strongly. When we look at the proteins corresponding to these motifs; this makes a lot of sense.
+
+M317 - SNRNPA
+M319 - SNRNPA
+M136 - SNRBP2
+
+M349 - PABPC1
+M269 - ZFP36
+M328 - ELAVL2
+
+M071 - SRSF7
